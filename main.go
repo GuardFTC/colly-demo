@@ -12,8 +12,7 @@ func main() {
 	//studyTest()
 
 	//2.例子测试
-	//1.获取数字货币市场容量
-	cryptocoins.TestGetCryptocoinsData()
+	exampleTest()
 }
 
 // studyTest 知识点学习测试
@@ -48,4 +47,11 @@ func studyTest() {
 
 	//10.请求上下文测试
 	study.RequestCtxTest()
+}
+
+// exampleTest 示例测试
+func exampleTest() {
+
+	//1.获取数字货币市场容量
+	cryptocoins.TestGetCryptocoinsData()
 }
