@@ -2,6 +2,7 @@
 package cryptocoins
 
 import (
+	"colly-demo/example/cryptocoins/mongo/client"
 	"encoding/json"
 	"log"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/queue"
 	"github.com/spf13/cast"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // rank20DataUrl 前20名数据接口
@@ -44,23 +46,12 @@ func TestGetCryptocoinsData() {
 
 	//6.合并数据
 	rankData := append(rank20Data, rankAfter20Data...)
+	log.Printf("get rank data count:%v", len(rankData))
 
-	//7.控制台打印集合
-	log.Printf("Cryptocurrency Market Capacity:%v", len(rankData))
-	//for _, cryptocurrency := range rankData {
-	//	log.Printf("Rank: %d, Name: %s, Symbol: %s, Market Cap: %s, Price: %s, Circulating Supply: %s, Volume 24h: %s, Percent Change 1h: %s, Percent Change 24h: %s, Percent Change 7d: %s",
-	//		cryptocurrency.Rank,
-	//		cryptocurrency.Name,
-	//		cryptocurrency.Symbol,
-	//		cryptocurrency.MarketCap,
-	//		cryptocurrency.Price,
-	//		cryptocurrency.CirculatingSupply,
-	//		cryptocurrency.Volume24h,
-	//		cryptocurrency.PercentChange1h,
-	//		cryptocurrency.PercentChange24h,
-	//		cryptocurrency.PercentChange7d,
-	//	)
-	//}
+	//7.保存数据到MongoDB
+	if err := saveToMongo(rankData); err != nil {
+		log.Printf("save to mongo error:%v", err)
+	}
 }
 
 // get20RankData 获取前20数据
@@ -233,4 +224,37 @@ func getUrls(c *colly.Collector) []string {
 
 	//11.返回
 	return urls
+}
+
+// saveToMongo 保存数据到MongoDB
+func saveToMongo(cryptocurrencies []Cryptocurrency) error {
+
+	//1.获取客户端
+	mongoClient := client.CreateMongoClient()
+	defer client.CloseMongoClient(mongoClient)
+
+	//2.声明数据库以及集合
+	db := mongoClient.GetClient().Database("testDb")
+	collection := db.Collection("cryptocurrencies")
+
+	//3.将 []Cryptocurrency 转换为 []interface{}
+	var saveDataList []interface{}
+	for _, cryptocurrency := range cryptocurrencies {
+		saveDataList = append(saveDataList, cryptocurrency)
+	}
+
+	//4.全量删除数据
+	if _, err := collection.DeleteMany(mongoClient.GetCtx(), bson.M{}); err != nil {
+		return err
+	} else {
+		log.Println("delete mongo data success")
+	}
+
+	//5.保存
+	if saveRes, err := collection.InsertMany(mongoClient.GetCtx(), saveDataList); err != nil {
+		return err
+	} else {
+		log.Printf("save to mongo success, data count:%v", len(saveRes.InsertedIDs))
+		return nil
+	}
 }
