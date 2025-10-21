@@ -13,7 +13,7 @@ func main() {
 
 	//2.例子测试
 	//1.获取数字货币市场容量
-	cryptocoins.CryptocoinsMarketCapacity()
+	cryptocoins.TestGetCryptocoinsData()
 }
 
 // studyTest 知识点学习测试

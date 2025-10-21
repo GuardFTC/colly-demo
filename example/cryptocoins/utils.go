@@ -25,59 +25,49 @@ func ExtractFullAmount(input string) string {
 	return input
 }
 
-// FormatUSD 通用USD格式化函数
-// 自动判断: 大数→$X,XXX,XXX | 小数→$0.XXXXXXX
-func FormatUSD(value float64) string {
-	// 转换为字符串(8位小数)
-	str := fmt.Sprintf("%.8f", value)
-
-	// 分离整数和小数部分
-	parts := strings.Split(str, ".")
-	integer := parts[0]
-	decimal := parts[1]
-
-	// 格式化整数部分(千分位逗号)
-	formattedInt := formatInteger(integer)
-
-	// 规则: 如果是小数价格(0.xxxx)，显示8位小数；否则只显示整数
-	if strings.HasPrefix(formattedInt, "0") && value < 1 {
-		return formattedInt + "." + decimal[:8] // $0.00000995
-	}
-
-	return formattedInt // $5,854,478,863
-}
-
 // FormatPercent 百分比格式化(保留2位小数 + %符号)
 // 示例: 0.35914323 → +0.36% | -3.14789939 → -3.15%
 func FormatPercent(value float64) string {
-	// 保留2位小数
+
+	//1.保留2位小数
 	formatted := fmt.Sprintf("%.2f", value)
 
-	// 添加符号(+/-)
+	//2.添加符号(+/-)
 	if value >= 0 {
 		formatted = "+" + formatted
 	}
 
+	//3.返回
 	return formatted + "%"
 }
 
-// formatInteger 格式化整数部分(添加千分位逗号)
-func formatInteger(s string) string {
-	var result strings.Builder
-	for i := len(s) - 1; i >= 0; i-- {
-		if (len(s)-1-i)%3 == 0 && i != 0 {
-			result.WriteByte(',')
-		}
-		result.WriteByte(s[i])
+// FormatUSD 标准库实现
+func FormatUSD(value float64) string {
+
+	//1.小数保留8位，返回
+	if value < 1 {
+		return fmt.Sprintf("%.8f", value)
 	}
-	return reverseString(result.String())
+
+	//2.分离整数和小数部分
+	str := fmt.Sprintf("%.2f", value)
+	parts := strings.Split(str, ".")
+	integer := parts[0]
+	decimal := parts[1]
+
+	//3.整数部分添加千分位分隔符，拼接小数部分，返回
+	return thousandSeparator(integer) + "." + decimal
 }
 
-// reverseString 反转字符串
-func reverseString(s string) string {
-	runes := []rune(s)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
+// thousandSeparator 千分位分隔符
+func thousandSeparator(s string) string {
+	n := len(s)
+	var b strings.Builder
+	for i, r := range s {
+		if i > 0 && (n-i)%3 == 0 {
+			b.WriteRune(',')
+		}
+		b.WriteRune(r)
 	}
-	return string(runes)
+	return b.String()
 }
