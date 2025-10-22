@@ -5,6 +5,13 @@ go 1.24.0
 toolchain go1.24.7
 
 require (
+	github.com/gocolly/colly v1.2.0
+	github.com/gocolly/redisstorage v0.0.0-20190812112800-1745c5e6d0ba
+	github.com/spf13/cast v1.10.0
+	go.mongodb.org/mongo-driver v1.17.4
+)
+
+require (
 	github.com/PuerkitoBio/goquery v1.10.3 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/antchfx/htmlquery v1.3.4 // indirect
@@ -12,23 +19,21 @@ require (
 	github.com/antchfx/xpath v1.3.5 // indirect
 	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/gocolly/colly v1.2.0 // indirect
-	github.com/gocolly/redisstorage v0.0.0-20190812112800-1745c5e6d0ba // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/jawher/mow.cli v1.2.0 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
+	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
-	github.com/spf13/cast v1.10.0 // indirect
+	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
-	go.mongodb.org/mongo-driver v1.17.4 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect

@@ -23,10 +23,10 @@ func studyTest() {
 	//
 	////2.异常测试
 	//study.ErrorTest()
-
-	//3.登录测试
-	study.LoginTest()
-
+	//
+	////3.登录测试
+	//study.LoginTest()
+	//
 	////4.最大深度测试
 	//study.MaxDepthTest()
 	//
@@ -47,6 +47,9 @@ func studyTest() {
 	//
 	////10.请求上下文测试
 	//study.RequestCtxTest()
+
+	//11.回调测试
+	study.CallbackTest()
 }
 
 // exampleTest 示例测试
