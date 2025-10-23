@@ -2,7 +2,7 @@
 package main
 
 import (
-	"colly-demo/example"
+	"colly-demo/example/douban"
 	"colly-demo/study"
 )
 
@@ -59,5 +59,5 @@ func exampleTest() {
 	//cryptocoins.TestGetCryptocoinsData()
 
 	//2.获取豆瓣图书数据
-	example.TestGetDouBanBookData()
+	douban.TestGetDouBanBookData()
 }
