@@ -106,7 +106,9 @@ func getBookData(urls []string) ([]Book, error) {
 
 	//4.设置真实UserAgent
 	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("User-Agent", uaPool.getUserAgent())
+		userAgent := uaPool.getUserAgent()
+		r.Headers.Set("User-Agent", userAgent)
+		log.Printf("spider request url: %v user-agent: %v", r.URL, userAgent)
 	})
 
 	//5.设置请求异常回调
