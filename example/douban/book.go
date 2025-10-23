@@ -133,21 +133,24 @@ func getBookData(urls []string) ([]Book, error) {
 			//9.写入集合
 			books = append(books, book)
 		})
+
+		//10.打印Book的
+		log.Printf("books add success. book len is: %d", len(books))
 	})
 
-	//10.循环URL,按照页数爬取数据
+	//11.循环URL,按照页数爬取数据
 	for _, url := range urls {
 
-		//11.访问URL
+		//12.访问URL
 		if err := c.Visit(url); err != nil {
 			log.Printf("spider visit error: %v", err)
 		}
 
-		//12.随机睡几秒，模拟正常行为
+		//13.随机睡几秒，模拟正常行为
 		time.Sleep(time.Duration(GetRandomSeconds(4, 8)) * time.Second)
 	}
 
-	//13.爬取完成返回集合
+	//14.爬取完成返回集合
 	return books, nil
 }
 
