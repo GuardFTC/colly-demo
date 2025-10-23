@@ -2,17 +2,17 @@
 package main
 
 import (
-	"colly-demo/example/cryptocoins"
+	"colly-demo/example"
 	"colly-demo/study"
 )
 
 func main() {
 
 	//1.知识点学习测试
-	studyTest()
+	//studyTest()
 
 	//2.例子测试
-	//exampleTest()
+	exampleTest()
 }
 
 // studyTest 知识点学习测试
@@ -55,6 +55,9 @@ func studyTest() {
 // exampleTest 示例测试
 func exampleTest() {
 
-	//1.获取数字货币市场容量
-	cryptocoins.TestGetCryptocoinsData()
+	////1.获取数字货币市场容量
+	//cryptocoins.TestGetCryptocoinsData()
+
+	//2.获取豆瓣图书数据
+	example.TestGetDouBanBookData()
 }

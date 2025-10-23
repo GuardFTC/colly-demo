@@ -2,7 +2,7 @@
 package cryptocoins
 
 import (
-	"colly-demo/example/cryptocoins/mongo/client"
+	"colly-demo/example/mongo/client"
 	"encoding/json"
 	"log"
 	"time"
