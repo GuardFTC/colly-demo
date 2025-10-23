@@ -12,7 +12,7 @@ func main() {
 	//studyTest()
 
 	//2.例子测试
-	//exampleTest()
+	exampleTest()
 }
 
 // studyTest 知识点学习测试
