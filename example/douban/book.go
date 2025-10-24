@@ -53,25 +53,15 @@ func getUrls() []string {
 	//1.定义总页数
 	var lastPage int
 
-	//2.获取代理切换器
-	proxySwitcher, err := getProxySwitcher()
-	if err != nil {
-		log.Printf("获取代理切换器失败：%v", err)
-		return nil
-	}
-
-	//3.创建采集器
+	//2.创建采集器
 	c := colly.NewCollector()
 
-	//4.设置代理服务器
-	c.SetProxyFunc(proxySwitcher)
-
-	//5.设置请求异常回调
+	//3.设置请求异常回调
 	c.OnError(func(r *colly.Response, err error) {
 		log.Printf("spider request error: %s", err)
 	})
 
-	//6.设置HTML解析回调，获取总页数
+	//4.设置HTML解析回调，获取总页数
 	c.OnHTML("div[class='paginator']", func(e *colly.HTMLElement) {
 		e.ForEach("a", func(i int, el *colly.HTMLElement) {
 			if page, err := strconv.Atoi(el.Text); err == nil {
@@ -80,25 +70,25 @@ func getUrls() []string {
 		})
 	})
 
-	//7.访问链接
+	//5.访问链接
 	if err := c.Visit(baseUrl); err != nil {
 		log.Println("spider visit error:", err)
 	}
 
-	//8.定义url切片
+	//6.定义url切片
 	var urls []string
 
-	//9.循环总页数，获取所有URL，并加入url切片
+	//7.循环总页数，获取所有URL，并加入url切片
 	for i := 0; i < lastPage; i++ {
 
-		//10.格式化url
+		//8.格式化url
 		url := fmt.Sprintf(baseUrl+payloadTemplate, i*20)
 
-		//11.存入切片
+		//9.存入切片
 		urls = append(urls, url)
 	}
 
-	//12.返回切片
+	//10.返回切片
 	return urls
 }
 
@@ -111,66 +101,56 @@ func getBookData(urls []string) ([]Book, error) {
 	//2.创建UserAgent池
 	uaPool := newUserAgentPool()
 
-	//3.获取代理切换器
-	proxySwitcher, err := getProxySwitcher()
-	if err != nil {
-		log.Printf("获取代理切换器失败：%v", err)
-		return nil, err
-	}
-
-	//4.创建采集器
+	//3.创建采集器
 	c := colly.NewCollector()
 
-	//5.设置代理切换器
-	c.SetProxyFunc(proxySwitcher)
-
-	//6.设置真实UserAgent
+	//4.设置真实UserAgent
 	c.OnRequest(func(r *colly.Request) {
 		userAgent := uaPool.getUserAgent()
 		r.Headers.Set("User-Agent", userAgent)
 		log.Printf("spider request url: %v user-agent: %v", r.URL, userAgent)
 	})
 
-	//7.设置请求异常回调
+	//5.设置请求异常回调
 	c.OnError(func(r *colly.Response, err error) {
 		log.Printf("spider request error: %s", err)
 	})
 
-	//8.设置响应回调
+	//6.设置响应回调
 	c.OnResponse(func(r *colly.Response) {
 		if r.StatusCode != 200 {
 			log.Printf("spider get book data error: %s", r.StatusCode)
 		}
 	})
 
-	//9.设置HTML解析回调
+	//7.设置HTML解析回调
 	c.OnHTML("ul[class='subject-list']", func(e *colly.HTMLElement) {
 		e.ForEach("li", func(i int, el *colly.HTMLElement) {
 
-			//10.解析图书数据
+			//8.解析图书数据
 			book := newBook(el)
 
-			//11.写入集合
+			//9.写入集合
 			books = append(books, book)
 		})
 
-		//12.打印Book的
+		//10.打印Book的
 		log.Printf("books add success. book len is: %d", len(books))
 	})
 
-	//13.循环URL,按照页数爬取数据
+	//11.循环URL,按照页数爬取数据
 	for _, url := range urls {
 
-		//14.访问URL
+		//12.访问URL
 		if err := c.Visit(url); err != nil {
 			log.Printf("spider visit error: %v", err)
 		}
 
-		//15.随机睡几秒，模拟正常行为
-		time.Sleep(time.Duration(GetRandomSeconds(4, 8)) * time.Second)
+		//13.随机睡几秒，模拟正常行为
+		time.Sleep(time.Duration(GetRandomSeconds(5, 10)) * time.Second)
 	}
 
-	//16.爬取完成返回集合
+	//14.爬取完成返回集合
 	return books, nil
 }
 
