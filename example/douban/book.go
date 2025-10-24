@@ -12,8 +12,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// baseUrl 基础URL
-const baseUrl = "https://book.douban.com/tag/小说"
+// host 服务器地址
+const host = "https://book.douban.com"
+
+// path 接口地址
+const path = "/tag/小说"
 
 // payloadTemplate 请求参数模版
 const payloadTemplate = "?start=%v&type=T"
@@ -31,7 +34,7 @@ func TestGetDouBanBookData() {
 	}
 
 	//3.随机睡几秒，模拟正常行为
-	time.Sleep(time.Duration(GetRandomSeconds(3, 8)) * time.Second)
+	time.Sleep(time.Duration(GetRandomSeconds(10, 20)) * time.Second)
 
 	//4.爬取图书数据
 	books, err := getBookData(urls)
@@ -53,15 +56,24 @@ func getUrls() []string {
 	//1.定义总页数
 	var lastPage int
 
-	//2.创建采集器
+	//2.创建UserAgent池
+	uaPool := newUserAgentPool()
+
+	//3.创建采集器
 	c := colly.NewCollector()
 
-	//3.设置请求异常回调
+	//4.设置请求头
+	c.OnRequest(func(r *colly.Request) {
+		setRequestHeaders(r, uaPool, 0)
+		log.Printf("spider request url: %v", r.URL)
+	})
+
+	//5.设置请求异常回调
 	c.OnError(func(r *colly.Response, err error) {
 		log.Printf("spider request error: %s", err)
 	})
 
-	//4.设置HTML解析回调，获取总页数
+	//6.设置HTML解析回调，获取总页数
 	c.OnHTML("div[class='paginator']", func(e *colly.HTMLElement) {
 		e.ForEach("a", func(i int, el *colly.HTMLElement) {
 			if page, err := strconv.Atoi(el.Text); err == nil {
@@ -70,25 +82,25 @@ func getUrls() []string {
 		})
 	})
 
-	//5.访问链接
-	if err := c.Visit(baseUrl); err != nil {
+	//7.访问链接
+	if err := c.Visit(host + path); err != nil {
 		log.Println("spider visit error:", err)
 	}
 
-	//6.定义url切片
+	//8.定义url切片
 	var urls []string
 
-	//7.循环总页数，获取所有URL，并加入url切片
+	//9.循环总页数，获取所有URL，并加入url切片
 	for i := 0; i < lastPage; i++ {
 
-		//8.格式化url
-		url := fmt.Sprintf(baseUrl+payloadTemplate, i*20)
+		//10.格式化url
+		url := fmt.Sprintf(host+path+payloadTemplate, i*20)
 
-		//9.存入切片
+		//11.存入切片
 		urls = append(urls, url)
 	}
 
-	//10.返回切片
+	//12.返回切片
 	return urls
 }
 
@@ -106,9 +118,8 @@ func getBookData(urls []string) ([]Book, error) {
 
 	//4.设置真实UserAgent
 	c.OnRequest(func(r *colly.Request) {
-		userAgent := uaPool.getUserAgent()
-		r.Headers.Set("User-Agent", userAgent)
-		log.Printf("spider request url: %v user-agent: %v", r.URL, userAgent)
+		setRequestHeaders(r, uaPool, 0)
+		log.Printf("spider request url: %v", r.URL)
 	})
 
 	//5.设置请求异常回调
@@ -138,19 +149,31 @@ func getBookData(urls []string) ([]Book, error) {
 		log.Printf("books add success. book len is: %d", len(books))
 	})
 
-	//11.循环URL,按照页数爬取数据
+	//11.定义休息时间数量阈值
+	restTimeThreshold := 0
+
+	//12.循环URL,按照页数爬取数据
 	for _, url := range urls {
 
-		//12.访问URL
+		//13.访问URL
 		if err := c.Visit(url); err != nil {
 			log.Printf("spider visit error: %v", err)
 		}
 
-		//13.随机睡几秒，模拟正常行为
-		time.Sleep(time.Duration(GetRandomSeconds(5, 10)) * time.Second)
+		//14.随机睡几秒，模拟正常行为
+		time.Sleep(time.Duration(GetRandomSeconds(10, 20)) * time.Second)
+
+		//15.休息时间数量阈值++
+		restTimeThreshold++
+
+		//16.如果阈值=20，则休息30s
+		if restTimeThreshold == 10 {
+			time.Sleep(30 * time.Second)
+			restTimeThreshold = 0
+		}
 	}
 
-	//14.爬取完成返回集合
+	//17.爬取完成返回集合
 	return books, nil
 }
 
