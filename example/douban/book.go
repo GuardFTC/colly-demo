@@ -74,12 +74,9 @@ func getUrls() []string {
 	})
 
 	//6.设置HTML解析回调，获取总页数
-	c.OnHTML("div[class='paginator']", func(e *colly.HTMLElement) {
-		e.ForEach("a", func(i int, el *colly.HTMLElement) {
-			if page, err := strconv.Atoi(el.Text); err == nil {
-				lastPage = page
-			}
-		})
+	c.OnHTML("#subject_list", func(e *colly.HTMLElement) {
+		text := e.ChildText("div[class='paginator'] > a:nth-last-of-type(1)")
+		lastPage, _ = strconv.Atoi(text)
 	})
 
 	//7.访问链接
