@@ -5,7 +5,7 @@ import (
 	"colly-demo/example/mongo/client"
 	"encoding/json"
 	"log"
-	"time"
+	"sync"
 
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/queue"
@@ -19,51 +19,48 @@ const rank20DataUrl = "https://coinmarketcap.com/all/views/all/"
 // rankAfter20DataUrl 后续排行数据接口
 const rankAfter20DataUrl = "https://api.coinmarketcap.com/data-api/v3/cryptocurrency/listing?sortBy=market_cap&sortType=desc&convert=USD&cryptoType=all&tagType=all&audited=false"
 
+// userAgent 模拟浏览器UA
+const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0"
+
 // TestGetCryptocoinsData 获取数字货币市场容量
 func TestGetCryptocoinsData() {
 
-	//1.创建采集器
-	c := colly.NewCollector()
+	//1.获取前20名数据
+	rank20Data := get20RankData()
 
-	//2.设置错误回调
-	c.OnError(func(r *colly.Response, err error) {
-		log.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
-	})
+	//2.获取后续排行数据
+	rankAfter20Data := getAfter20RankData()
 
-	//3.设置采集器速率限制
-	if err := c.Limit(&colly.LimitRule{
-		DomainGlob:  "*",             //域名匹配规则
-		RandomDelay: 5 * time.Second, //随机延迟最大seconds
-	}); err != nil {
-		log.Printf("error setting limit: %v", err)
-	}
-
-	//4.获取前20名数据
-	rank20Data := get20RankData(c)
-
-	//5.获取后续排行数据
-	rankAfter20Data := getAfter20RankData(c)
-
-	//6.合并数据
+	//3.合并数据
 	rankData := append(rank20Data, rankAfter20Data...)
 	log.Printf("get rank data count:%v", len(rankData))
 
-	//7.保存数据到MongoDB
+	//4.保存数据到MongoDB
 	if err := saveToMongo(rankData); err != nil {
 		log.Printf("save to mongo error:%v", err)
 	}
 }
 
 // get20RankData 获取前20数据
-func get20RankData(c *colly.Collector) []Cryptocurrency {
+func get20RankData() []Cryptocurrency {
 
 	//1.定义结构体切片
 	var cryptocurrencies []Cryptocurrency
 
-	//2.设置HTML响应回调
+	//2.创建采集器
+	c := colly.NewCollector(
+		colly.UserAgent(userAgent),
+	)
+
+	//3.设置错误回调
+	c.OnError(func(r *colly.Response, err error) {
+		log.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+	})
+
+	//4.设置HTML响应回调
 	c.OnHTML("tbody tr", func(e *colly.HTMLElement) {
 
-		//3.解析属性，封装为结构体
+		//5.解析属性，封装为结构体
 		cryptocurrency := Cryptocurrency{
 			Rank:              cast.ToInt(e.ChildText("td:nth-child(1)")),
 			Name:              e.ChildText("td:nth-child(2)"),
@@ -77,7 +74,7 @@ func get20RankData(c *colly.Collector) []Cryptocurrency {
 			PercentChange7d:   e.ChildText("td:nth-child(10)"),
 		}
 
-		//4.存入切片
+		//6.存入切片
 		if cryptocurrency.Rank == 0 {
 			return
 		} else {
@@ -85,45 +82,54 @@ func get20RankData(c *colly.Collector) []Cryptocurrency {
 		}
 	})
 
-	//5.请求地址
+	//7.请求地址
 	if err := c.Visit(rank20DataUrl); err != nil {
 		log.Printf("visit error:%v", err)
 	}
 
-	//6.等待请求结束
-	c.Wait()
-
-	//7.返回结构体切片
+	//8.返回结构体切片
 	return cryptocurrencies
 }
 
 // getAfter20RankData 获取后续排行数据
-func getAfter20RankData(c *colly.Collector) []Cryptocurrency {
+func getAfter20RankData() []Cryptocurrency {
 
 	//1.获取URL集合
-	urls := getUrls(c)
+	urls := getUrls()
 
-	//2.创建队列
-	q, _ := queue.New(
-		5, //并发爬虫数量
-		&queue.InMemoryQueueStorage{MaxSize: 500}, //队列存储容量
+	//2.创建采集器
+	c := colly.NewCollector(
+		colly.UserAgent(userAgent),
+		colly.Async(true),
 	)
 
-	//3.url写入队列
-	for _, url := range urls {
-		if err := q.AddURL(url); err != nil {
-			log.Printf("add url error:%v", err)
-			continue
-		}
+	//3.设置错误回调
+	c.OnError(func(r *colly.Response, err error) {
+		log.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+	})
+
+	//4.设置请求限制
+	if err := c.Limit(&colly.LimitRule{
+		DomainGlob:  `api.coinmarketcap.com`,
+		Parallelism: 3,
+	}); err != nil {
+		log.Printf("error setting limit: %v", err)
 	}
 
-	//4.定义结构体切片
+	//5.定义结构体切片
 	var cryptocurrencies []Cryptocurrency
 
-	//5.设置响应回调
+	//6.定义锁
+	var mu sync.Mutex
+
+	//7.设置响应回调
 	c.OnResponse(func(r *colly.Response) {
 
-		//6.解析JSON到结构体
+		//8.加锁，确保由于队列并发导致的线程安全问题
+		mu.Lock()
+		defer mu.Unlock()
+
+		//9.解析JSON到结构体
 		var response Response
 		err := json.Unmarshal(r.Body, &response)
 		if err != nil {
@@ -131,19 +137,19 @@ func getAfter20RankData(c *colly.Collector) []Cryptocurrency {
 			return
 		}
 
-		//7.如果响应异常，打印异常
+		//10.如果响应异常，打印异常
 		if response.Status.ErrorCode != "0" {
 			log.Printf("response error:%s", response.Status.ErrorMessage)
 			return
 		}
 
-		//6.循环封装结构体
+		//11.循环封装结构体
 		for _, item := range response.Data.CryptoCurrencyList {
 
-			//7.获取报价信息
+			//12.获取报价信息
 			quote := item.Quotes[0]
 
-			//8.初始化结构体
+			//13.初始化结构体
 			cryptocurrency := Cryptocurrency{
 				Rank:              item.CMCRank,
 				Name:              item.Name,
@@ -157,22 +163,39 @@ func getAfter20RankData(c *colly.Collector) []Cryptocurrency {
 				PercentChange7d:   FormatPercent(quote.PercentChange7d),
 			}
 
-			//9.存入集合
+			//14.存入集合
 			cryptocurrencies = append(cryptocurrencies, cryptocurrency)
 		}
 	})
 
-	//10.基于队列爬取数据
+	//15.创建队列
+	q, _ := queue.New(
+		5, //并发爬虫数量
+		&queue.InMemoryQueueStorage{MaxSize: 10000}, //队列存储容量
+	)
+
+	//16.url写入队列
+	for _, url := range urls {
+		if err := q.AddURL(url); err != nil {
+			log.Printf("add url error:%v", err)
+			continue
+		}
+	}
+
+	//17.基于队列爬取数据
 	if err := q.Run(c); err != nil {
 		log.Printf("queue run error:%v", err)
 	}
 
-	//11.返回集合
+	//18.等待爬取完毕
+	c.Wait()
+
+	//19.返回集合
 	return cryptocurrencies
 }
 
 // getUrls 获取数据总量
-func getUrls(c *colly.Collector) []string {
+func getUrls() []string {
 
 	//1.定义参数
 	url := rankAfter20DataUrl + "&start=1&limit=1"
@@ -180,38 +203,45 @@ func getUrls(c *colly.Collector) []string {
 	//2.定义响应结构体
 	var response Response
 
-	//3.设置响应回调
+	//3.创建采集器
+	c := colly.NewCollector(
+		colly.UserAgent(userAgent),
+	)
+
+	//4.设置错误回调
+	c.OnError(func(r *colly.Response, err error) {
+		log.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+	})
+
+	//5.设置响应回调
 	c.OnResponse(func(r *colly.Response) {
 
-		//4.解析JSON到结构体
+		//6.解析JSON到结构体
 		err := json.Unmarshal(r.Body, &response)
 		if err != nil {
 			log.Printf("parse json error:%v", err)
 			return
 		}
 
-		//5.如果响应异常，打印异常
+		//7.如果响应异常，打印异常
 		if response.Status.ErrorCode != "0" {
 			log.Printf("response error:%s", response.Status.ErrorMessage)
 			return
 		}
 	})
 
-	//6.发起请求
+	//8.发起请求
 	if err := c.Visit(url); err != nil {
 		log.Printf("visit error:%v", err)
 	}
 
-	//7.获取数据总量
+	//9.获取数据总量
 	totalCount := cast.ToInt(response.Data.TotalCount)
 
-	//8.定义URL切片,首先查询21-100的数据
-	urls := []string{rankAfter20DataUrl + "&start=21&limit=100"}
+	//10.定义URL切片,首先查询21-100的数据
+	urls := []string{rankAfter20DataUrl + "&start=21&limit=80"}
 
-	//9.减去前100名
-	totalCount = totalCount - 100
-
-	//10.步长为200，循环拼接后续URL
+	//12.步长为200，循环拼接后续URL
 	for i := 101; i <= totalCount; i += 200 {
 		if i+200 > totalCount {
 			end := totalCount - i + 1
@@ -222,7 +252,7 @@ func getUrls(c *colly.Collector) []string {
 		}
 	}
 
-	//11.返回
+	//13.返回
 	return urls
 }
 

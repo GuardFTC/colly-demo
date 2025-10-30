@@ -1,7 +1,7 @@
 // Package main @Author:冯铁城 [17615007230@163.com] 2025-10-20 16:50:19
 package main
 
-import "colly-demo/example/douban"
+import "colly-demo/example/cryptocoins"
 
 func main() {
 
@@ -55,11 +55,11 @@ func studyTest() {
 // exampleTest 示例测试
 func exampleTest() {
 
-	////1.获取数字货币市场容量
-	//cryptocoins.TestGetCryptocoinsData()
+	//1.获取数字货币市场容量
+	cryptocoins.TestGetCryptocoinsData()
 
 	//2.获取豆瓣图书数据
-	douban.TestGetDouBanBookData()
+	//douban.TestGetDouBanBookData()
 
 	//3.豆瓣top250图书]
 	//douban.TestGetTop250BookData()
