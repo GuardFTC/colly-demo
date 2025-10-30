@@ -25,6 +25,7 @@ func RedisStorageTest() {
 
 	//2.创建采集器
 	c := colly.NewCollector()
+	c.Async = true
 
 	//3.设置存储
 	err := c.SetStorage(storage)
@@ -63,4 +64,7 @@ func RedisStorageTest() {
 
 	//10.开始请求
 	q.Run(c)
+
+	//11.等待请求完成
+	c.Wait()
 }

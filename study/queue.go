@@ -34,7 +34,9 @@ func QueueTest() {
 	}
 
 	//5.创建采集器
-	c := colly.NewCollector()
+	c := colly.NewCollector(
+		colly.Async(true),
+	)
 
 	//6.请求之前触发函数
 	c.OnRequest(func(r *colly.Request) {
