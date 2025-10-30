@@ -5,7 +5,6 @@ import (
 	"colly-demo/example/mongo/client"
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -34,7 +33,7 @@ func TestGetDouBanBookData() {
 	}
 
 	//3.随机睡几秒，模拟正常行为
-	time.Sleep(time.Duration(GetRandomSeconds(10, 20)) * time.Second)
+	time.Sleep(time.Duration(GetRandomSeconds(5, 10)) * time.Second)
 
 	//4.爬取图书数据
 	books, err := getBookData(urls)
@@ -53,51 +52,20 @@ func TestGetDouBanBookData() {
 // 获取爬取全部数据的URL
 func getUrls() []string {
 
-	//1.定义总页数
-	var lastPage int
-
-	//2.创建UserAgent池
-	uaPool := newUserAgentPool()
-
-	//3.创建采集器
-	c := colly.NewCollector()
-
-	//4.设置请求头
-	c.OnRequest(func(r *colly.Request) {
-		setRequestHeaders(r, uaPool, 0)
-		log.Printf("spider request url: %v", r.URL)
-	})
-
-	//5.设置请求异常回调
-	c.OnError(func(r *colly.Response, err error) {
-		log.Printf("spider request error: %s", err)
-	})
-
-	//6.设置HTML解析回调，获取总页数
-	c.OnHTML("#subject_list", func(e *colly.HTMLElement) {
-		text := e.ChildText("div[class='paginator'] > a:nth-last-of-type(1)")
-		lastPage, _ = strconv.Atoi(text)
-	})
-
-	//7.访问链接
-	if err := c.Visit(host + path); err != nil {
-		log.Println("spider visit error:", err)
-	}
-
-	//8.定义url切片
+	//1.定义url切片
 	var urls []string
 
-	//9.循环总页数，获取所有URL，并加入url切片
-	for i := 0; i < lastPage; i++ {
+	//2.循环总页数，获取所有URL，并加入url切片
+	for i := 0; i < 50; i++ {
 
-		//10.格式化url
+		//3.格式化url
 		url := fmt.Sprintf(host+path+payloadTemplate, i*20)
 
-		//11.存入切片
+		//4.存入切片
 		urls = append(urls, url)
 	}
 
-	//12.返回切片
+	//5.返回切片
 	return urls
 }
 
@@ -107,15 +75,13 @@ func getBookData(urls []string) ([]Book, error) {
 	//1.定义图书切片
 	var books []Book
 
-	//2.创建UserAgent池
-	uaPool := newUserAgentPool()
-
 	//3.创建采集器
-	c := colly.NewCollector()
+	c := colly.NewCollector(
+		colly.UserAgent(userAgent),
+	)
 
 	//4.设置真实UserAgent
 	c.OnRequest(func(r *colly.Request) {
-		setRequestHeaders(r, uaPool, 0)
 		log.Printf("spider request url: %v", r.URL)
 	})
 
@@ -146,8 +112,14 @@ func getBookData(urls []string) ([]Book, error) {
 		log.Printf("books add success. book len is: %d", len(books))
 	})
 
-	//11.定义休息时间数量阈值
-	restTimeThreshold := 0
+	//10.设置请求限制
+	if err := c.Limit(&colly.LimitRule{
+		DomainGlob:  `book.douban.com`,
+		Delay:       3 * time.Second,
+		RandomDelay: 600 * time.Millisecond,
+	}); err != nil {
+		log.Printf("error setting limit: %v", err)
+	}
 
 	//12.循环URL,按照页数爬取数据
 	for _, url := range urls {
@@ -155,18 +127,6 @@ func getBookData(urls []string) ([]Book, error) {
 		//13.访问URL
 		if err := c.Visit(url); err != nil {
 			log.Printf("spider visit error: %v", err)
-		}
-
-		//14.随机睡几秒，模拟正常行为
-		time.Sleep(time.Duration(GetRandomSeconds(10, 20)) * time.Second)
-
-		//15.休息时间数量阈值++
-		restTimeThreshold++
-
-		//16.如果阈值=20，则休息30s
-		if restTimeThreshold == 10 {
-			time.Sleep(30 * time.Second)
-			restTimeThreshold = 0
 		}
 	}
 
