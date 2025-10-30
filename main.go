@@ -1,15 +1,17 @@
 // Package main @Author:冯铁城 [17615007230@163.com] 2025-10-20 16:50:19
 package main
 
-import "colly-demo/study"
+import (
+	"colly-demo/example/douban"
+)
 
 func main() {
 
 	//1.知识点学习测试
-	studyTest()
+	//studyTest()
 
 	//2.例子测试
-	//exampleTest()
+	exampleTest()
 }
 
 // studyTest 知识点学习测试
@@ -31,7 +33,7 @@ func studyTest() {
 	//study.Parallel()
 	//
 	//6.代理测试
-	study.ProxyTest()
+	//study.ProxyTest()
 	//
 	//7.队列设置
 	//study.QueueTest()
@@ -60,4 +62,7 @@ func exampleTest() {
 
 	//2.获取豆瓣图书数据
 	//douban.TestGetDouBanBookData()
+
+	//3.豆瓣top250图书]
+	douban.TestGetTop250BookData()
 }

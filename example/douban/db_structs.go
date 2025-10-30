@@ -2,6 +2,7 @@
 package douban
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/gocolly/colly"
@@ -54,5 +55,44 @@ func newBook(el *colly.HTMLElement) Book {
 	book.EbookLink = el.ChildAttr("div[class='info'] > div[class='ft'] > div[class='ebook-link'] > a", "href")
 
 	//8.返回图书
+	return book
+}
+
+// newBook 创建图书结构体实例
+func newTop250Book(el *colly.HTMLElement) Book {
+
+	//1.创建图书结构体实例
+	book := Book{}
+
+	//2.获取图书封面
+	book.CoverImg = el.ChildAttr("td:nth-of-type(1) > a > img", "src")
+
+	//3.获取图书标题
+	book.Title = el.ChildText("td:nth-of-type(2) > div[class='pl2'] > a")
+
+	//4.填充图书信息相关字段
+	infoText := el.ChildText("td:nth-of-type(2) > p[class='pl']")
+	infos := strings.Split(infoText, "/")
+	if len(infos) == 4 {
+		book.Author = strings.TrimSpace(infos[0])
+		book.Publisher = strings.TrimSpace(infos[1])
+		book.PublishTime = strings.TrimSpace(infos[2])
+		book.Price = strings.TrimSpace(infos[3])
+	} else if len(infos) > 4 {
+		book.Author = strings.TrimSpace(infos[0])
+		book.Publisher = strings.TrimSpace(infos[1]) + "/" + strings.TrimSpace(infos[2])
+		book.PublishTime = strings.TrimSpace(infos[3])
+		book.Price = strings.TrimSpace(infos[4])
+	}
+
+	//5.获取评价数以及评分
+	book.Rating = el.ChildText("td:nth-of-type(2) > div[class='star clearfix'] > span[class='rating_nums']")
+	RatingCountStr := el.ChildText("td:nth-of-type(2) > div[class='star clearfix'] > span[class='pl']")
+	book.RatingCount = regexp.MustCompile(`\d+人`).FindString(strings.ReplaceAll(RatingCountStr, "\n", ""))
+
+	//6.获取描述
+	book.Description = el.ChildText("td:nth-of-type(2) > p[class='quote'] > span[class='inq']")
+
+	//7.返回book
 	return book
 }

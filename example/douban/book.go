@@ -45,7 +45,7 @@ func TestGetDouBanBookData() {
 	}
 
 	//5.保存到MongoDB
-	if err = saveToMongo(books); err != nil {
+	if err = saveToMongo(books, "books"); err != nil {
 		log.Println("save to mongo error:", err)
 	}
 }
@@ -175,7 +175,7 @@ func getBookData(urls []string) ([]Book, error) {
 }
 
 // saveToMongo 保存数据到MongoDB
-func saveToMongo(books []Book) error {
+func saveToMongo(books []Book, collectionName string) error {
 
 	//1.获取客户端
 	mongoClient := client.CreateMongoClient()
@@ -183,7 +183,7 @@ func saveToMongo(books []Book) error {
 
 	//2.声明数据库以及集合
 	db := mongoClient.GetClient().Database("testDb")
-	collection := db.Collection("books")
+	collection := db.Collection(collectionName)
 
 	//3.将 []Book 转换为 []interface{}
 	var saveDataList []interface{}
